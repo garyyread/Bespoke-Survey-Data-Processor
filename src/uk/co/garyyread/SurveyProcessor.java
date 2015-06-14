@@ -23,31 +23,39 @@ import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
 import jxl.write.WriteException;
 
+/**
+ * Survey processor, bespoke application developed for a masters university 
+ * student at Swansea university in aid to processes years worth of data.
+ * 
+ * @author Gary Read
+ * @since 2015
+ */
 public class SurveyProcessor {
-
-    //final vars
-    private final boolean debug = true;
-    private final String locSurveyData = "C:\\Users\\Gary\\Documents\\NetBeansProjects\\uk.co.garyyread.surveyprocessor\\src\\uk\\co\\garyyread\\Data\\surveyData.xls";
-    private final String locResult = "C:\\Users\\Gary\\Documents\\NetBeansProjects\\uk.co.garyyread.surveyprocessor\\src\\uk\\co\\garyyread\\Data\\results.xls";
-    private final String TAB = "\t";
+    private boolean debug;
 
     //Non-static vars
     private Workbook workBook;
-    private Sheet workingSheet;
-
-    //Column settings
-    private int ROW_START = 1;
-    private int BEACH = 0; //A
-    private int ID = 1; //B
-    private int DATE = 2; //C
-    private int JULIAN_DATE = 3; //D
-    private int AGE_CLASS = 4; //E
+    private WritableWorkbook resultBook;
+    private final String TAB;
+    private final int ROW_START;
+    private final int BEACH; 
+    private final int ID; 
+    private final int DATE; 
+    private final int JULIAN_DATE; 
+    private final int AGE_CLASS; 
 
     /**
      * Public class constructor...
      */
     public SurveyProcessor() {
-        //TBA
+        this.debug = false;
+        this.TAB = "\t";
+        this.ROW_START = 1;
+        this.BEACH = 0;
+        this.ID = 1;
+        this.DATE = 2;
+        this.JULIAN_DATE = 3;
+        this.AGE_CLASS = 4;
     }
 
     /**
@@ -79,17 +87,26 @@ public class SurveyProcessor {
     }
 
     /**
+     * Create a workbook to write results too
+     *
+     * @param fileName File name of new writable workbook
+     * @return reference to workbook
+     * @throws IOException
+     */
+    public WritableWorkbook createWritableWorkbook(String fileName) throws IOException {
+        WritableWorkbook res = Workbook.createWorkbook(new File(fileName));
+        this.resultBook = res;
+        return resultBook;
+    }
+
+    /**
      * Business logic...
      *
      * @param name Sheet name from workbook to work from.
-     * @return boolean indicating success.
      */
-    public HashMap<String, String[]> processSheet(String name) {
-        boolean result = false;
-
+    public void processSheet(String name) throws WriteException, IOException {
         //Get sheet
-        workingSheet = workBook.getSheet(name);
-        result = true;
+        Sheet workingSheet = workBook.getSheet(name);
 
         //Check sheet exists
         if (workingSheet == null) {
@@ -97,10 +114,9 @@ public class SurveyProcessor {
             if (debug) {
                 debug("EXCEPTION:processSheet(" + name + "),sheet does not exist.");
             }
-            return null;
         }
 
-        //Get columns from working sheet 
+        //Get columns from working sheet
         int ID_POS = 0;
         int BEACH_POS = 1;
         int AGE_CLASS_POS = 2;
@@ -218,7 +234,100 @@ public class SurveyProcessor {
             debug(Arrays.toString(arr));
         }
 
-        return map;
+        writeResultsToWorkbook(name, map);
+    }
+
+    /**
+     * Write data from processSheet to a WritableWorkbook
+     *
+     * @param name Name to call sheet in the working workbook
+     * @param map Data to write to the sheet
+     */
+    private void writeResultsToWorkbook(String name, HashMap<String, String[]> map) throws WriteException, IOException {
+        //Create work sheet
+        createWritableWorkbook(name + "_result.xls");
+        WritableSheet ws = resultBook.createSheet(name, 0);
+
+        //Write column headers
+        ws.addCell(new Label(0, 0, "Beach"));
+        ws.addCell(new Label(1, 0, "Pup ID"));
+        ws.addCell(new Label(2, 0, "C0"));
+        ws.addCell(new Label(3, 0, "C1"));
+        ws.addCell(new Label(4, 0, "C2"));
+        ws.addCell(new Label(5, 0, "C3"));
+        ws.addCell(new Label(6, 0, "C4"));
+        ws.addCell(new Label(7, 0, "C5"));
+        ws.addCell(new Label(8, 0, "C0"));
+        ws.addCell(new Label(9, 0, "C1"));
+        ws.addCell(new Label(10, 0, "C2"));
+        ws.addCell(new Label(11, 0, "C3"));
+        ws.addCell(new Label(12, 0, "C4"));
+        ws.addCell(new Label(13, 0, "C5"));
+
+        //Loop tnough rows of data
+        for (int r = 1; r <= map.size(); r++) {
+            String[] arr = map.get(r + "");
+
+            //Add each column of data from the row 'r'
+            for (int c = 0; arr != null && c < arr.length; c++) {
+                int altC = c - 1;
+                String cont = arr[c];
+
+                if (c == 1) {
+                    //Get cell colour and create cell format
+                    int colourValue = Integer.parseInt(arr[c + 1]);
+                    WritableCellFormat format = new WritableCellFormat();
+                    format.setBorder(Border.ALL, BorderLineStyle.THIN, Colour.GRAY_25);
+                    if (colourValue == 192) {
+                        format.setBackground(Colour.UNKNOWN);
+                    } else {
+                        format.setBackground(Colour.getInternalColour(colourValue));
+                    }
+
+                    try {
+                        jxl.write.Number nc = new jxl.write.Number(c, r, Double.parseDouble(cont), format);
+                        ws.addCell(nc);
+                    } catch (NumberFormatException ex) {
+                        if (debug) {
+                            debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
+                        }
+                    }
+
+                    //date cell
+                } else if (c > 2 && c < 9) {
+                    try {
+                        if (cont.length() > 0) {
+                            ws.addCell(new Label(altC, r, cont));
+                        }
+                    } catch (StringIndexOutOfBoundsException ex) {
+                        if (debug) {
+                            debug("EXCEPTION:method(),No date found in data \"" + cont + "\"");
+                        }
+                    }
+
+                    //Julian cell
+                } else if (c > 8) {
+                    try {
+                        jxl.write.Number nc = new jxl.write.Number(altC, r, Double.parseDouble(cont));
+                        ws.addCell(nc);
+                    } catch (NumberFormatException ex) {
+                        if (debug) {
+                            debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
+                        }
+                    }
+
+                    //All other columns (minus colour information)
+                } else {
+                    if (c != 2) {
+                        ws.addCell(new Label(c, r, cont));
+                    }
+                }
+            }
+        }
+
+        //Write data and close workbook
+        resultBook.write();
+        resultBook.close();
     }
 
     /**
@@ -253,7 +362,7 @@ public class SurveyProcessor {
         try {
             date = LocalDate.parse(dateStr, dateFormat);
         } catch (DateTimeException ex) {
-            displayMessage("FATAL ERROR in Sheet \"" + workingSheet.getName() + "\""
+            displayMessage("FATAL ERROR in Sheet"
                     + "\n" + "Please fix error in date column!"
                     + "\n" + "Failed to convert text to date: \"" + dateStr + "\"");
             debug("convertStrToDate Failed - EXIT");
@@ -270,12 +379,29 @@ public class SurveyProcessor {
     }
 
     /**
+     * Method to flip debugging mode
+     *
+     * @param debugging
+     */
+    public void setDebugging(boolean debugging) {
+        debug = debugging;
+    }
+
+    /**
      * Return list of sheet names that can be worked on.
      *
      * @return String array of workbook sheets.
      */
     public String[] getSheetNames() {
         return workBook.getSheetNames();
+    }
+    
+    /**
+     * Get the writable workbook that sheets will be added to.
+     * @return workbook that will be written to.
+     */
+    public WritableWorkbook getResultBook() {
+        return resultBook;
     }
 
     /**
@@ -288,20 +414,11 @@ public class SurveyProcessor {
     }
 
     /**
-     * Get current sheet that is being read from, can be null.
-     *
-     * @return Sheet being read from.
-     */
-    public Sheet getWorkingSheet() {
-        return workingSheet;
-    }
-
-    /**
      * JOption message dialog shown on main GUI thread.
      *
      * @param msg String to display to user
      */
-    private void displayMessage(String msg) {
+    public void displayMessage(String msg) {
         JOptionPane.showMessageDialog(null, msg);
     }
 
@@ -316,107 +433,17 @@ public class SurveyProcessor {
 
     //Main method
     public static void main(String[] args) {
-        SurveyProcessor sp = new SurveyProcessor();;
-        sp.loadWorkbook(sp.locSurveyData);
-        String sheetName = "2014";
-        HashMap<String, String[]> map = sp.processSheet(sheetName);
-
-        /* Print hashtmap out
-         for (int i = 0; i <= map.size(); i++) {
-         String[] arr = map.get(i+"");
-         sp.debug(Arrays.toString(arr));
-         }
-         */
-
-        WritableWorkbook wb;
-        try {
-            //Create workbook, add a sheet
-            wb = Workbook.createWorkbook(new File(sp.locResult));
-            WritableSheet ws = wb.createSheet(sheetName, 0);
-
-            //Write column headers
-            ws.addCell(new Label(0, 0, "Beach"));
-            ws.addCell(new Label(1, 0, "Pup ID"));
-            ws.addCell(new Label(2, 0, "C0"));
-            ws.addCell(new Label(3, 0, "C1"));
-            ws.addCell(new Label(4, 0, "C2"));
-            ws.addCell(new Label(5, 0, "C3"));
-            ws.addCell(new Label(6, 0, "C4"));
-            ws.addCell(new Label(7, 0, "C5"));
-            ws.addCell(new Label(8, 0, "C0"));
-            ws.addCell(new Label(9, 0, "C1"));
-            ws.addCell(new Label(10, 0, "C2"));
-            ws.addCell(new Label(11, 0, "C3"));
-            ws.addCell(new Label(12, 0, "C4"));
-            ws.addCell(new Label(13, 0, "C5"));
-
-            //Loop tnough rows of data
-            for (int r = 1; r <= map.size(); r++) {
-                String[] arr = map.get(r + "");
-
-                //Add each column of data from the row 'r'
-                for (int c = 0; arr != null && c < arr.length; c++) {
-                    int altC = c - 1;
-                    String cont = arr[c];
-
-                    if (c == 1) {
-                        //Get cell colour and create cell format
-                        int colourValue = Integer.parseInt(arr[c + 1]);
-                        WritableCellFormat format = new WritableCellFormat();
-                        format.setBorder(Border.ALL, BorderLineStyle.THIN, Colour.GRAY_25);
-                        if (colourValue == 192) {
-                            format.setBackground(Colour.UNKNOWN);
-                        } else {
-                            format.setBackground(Colour.getInternalColour(colourValue));
-                        }
-
-                        try {
-                            jxl.write.Number nc = new jxl.write.Number(c, r, Double.parseDouble(cont), format);
-                            ws.addCell(nc);
-                        } catch (NumberFormatException ex) {
-                            if (sp.debug) {
-                                sp.debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
-                            }
-                        }
-
-                        //date cell
-                    } else if (c > 2 && c < 9) {
-                        try {
-                            if (cont.length() > 0) {
-                                ws.addCell(new Label(altC, r, cont));
-                            }
-                        } catch (StringIndexOutOfBoundsException ex) {
-                            if (sp.debug) {
-                                sp.debug("EXCEPTION:method(),No date found in data \"" + cont + "\"");
-                            }
-                        }
-
-                        //Julian cell
-                    } else if (c > 8) {
-                        try {
-                            jxl.write.Number nc = new jxl.write.Number(altC, r, Double.parseDouble(cont));
-                            ws.addCell(nc);
-                        } catch (NumberFormatException ex) {
-                            if (sp.debug) {
-                                sp.debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
-                            }
-                        }
-
-                        //All other columns (minus colour information)
-                    } else {
-                        if (c != 2) {
-                            ws.addCell(new Label(c, r, cont));
-                        }
-                    }
-                }
+        SurveyProcessor sp = new SurveyProcessor();
+        
+        if (args.length != 2) {
+            SurveyProcessorGUI gui = new SurveyProcessorGUI();
+        } else {
+            sp.loadWorkbook(args[0]);
+            try {
+                sp.processSheet(args[1]);
+            } catch (WriteException | IOException ex) {
+                Logger.getLogger(SurveyProcessor.class.getName()).log(Level.SEVERE, null, ex);
             }
-
-            //Write data and close workbook
-            wb.write();
-            wb.close();
-        } catch (IOException | WriteException ex) {
-            Logger.getLogger(SurveyProcessor.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
 }

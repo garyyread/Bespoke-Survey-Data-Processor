@@ -1,4 +1,6 @@
 *.class
+*.xls
+*.xlsx
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -57,3 +59,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Excel files
+*.xls
+*.xlsx
+/dist/
