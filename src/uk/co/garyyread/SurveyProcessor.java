@@ -26,7 +26,7 @@ import jxl.write.WriteException;
 /**
  * Survey processor, bespoke application developed for a masters university 
  * student at Swansea university in aid to processes years worth of data.
- * 
+ * @version 3.0
  * @author Gary Read
  * @since 2015
  */
@@ -37,12 +37,12 @@ public class SurveyProcessor {
     private Workbook workBook;
     private WritableWorkbook resultBook;
     private final String TAB;
-    private final int ROW_START;
-    private final int BEACH; 
-    private final int ID; 
-    private final int DATE; 
-    private final int JULIAN_DATE; 
-    private final int AGE_CLASS; 
+    private int ROW_START;
+    private int BEACH; 
+    private int ID; 
+    private int DATE; 
+    private int JULIAN_DATE; 
+    private int AGE_CLASS; 
 
     /**
      * Public class constructor...
@@ -353,18 +353,23 @@ public class SurveyProcessor {
     }
 
     /**
-     * Not all cell values are regular, take last char from string (always
+     * Not all cell values are regular, take first integer from string (always
      * number)
      *
      * @param ageClassStr String value indicating.
      * @return -1 for invalid input, 0 to 5 otherwise.
      */
     private int sanatizeAgeClassInput(String ageClassStr) {
-        try {
-            return Integer.parseInt("" + ageClassStr.charAt(ageClassStr.length() - 1));
-        } catch (Exception e) {
-            return -1;
+        for (int i = 0; i < ageClassStr.length(); i++) {
+            try {
+                //return Integer.parseInt("" + ageClassStr.charAt(ageClassStr.length() - 1));
+                return Integer.parseInt(ageClassStr.substring(i,i+1));
+            } catch (Exception e) {
+                //Skip
+            }
         }
+        
+        return -1;
     }
 
     /**

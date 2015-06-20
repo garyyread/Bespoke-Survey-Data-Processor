@@ -197,7 +197,7 @@ public class SurveyProcessorGUI extends JFrame {
         add(processTab);
         setPreferredSize(WINDOW_SIZE);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setTitle("Survey Processor - G.Read");
+        setTitle("Survey Processor v3.0 - G.Read");
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
