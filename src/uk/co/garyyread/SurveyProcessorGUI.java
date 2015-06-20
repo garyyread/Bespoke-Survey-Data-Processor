@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -15,6 +16,7 @@ import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -45,6 +47,7 @@ public class SurveyProcessorGUI extends JFrame {
     private ArrayList<JCheckBox> sheetCheckBoxArray;
     private JCheckBox debugCheckBox;
     private JButton processButton;
+    private JButton pickFileButton;
     private JTabbedPane tabbedPane;
     private JPanel debugTab;
     private JPanel processTab;
@@ -54,6 +57,7 @@ public class SurveyProcessorGUI extends JFrame {
     private final String outputLabelStr = "Output File";
     private final String debugCheckBoxStr = "Debug";
     private final String processButtonStr = "Process";
+    private final String pickFileButtonStr = "Choose File";
     private final String debugTabStr = "Debug Dialog";
     private final String processTabStr = "Process Dialog";
     private final Dimension WINDOW_SIZE = new Dimension(400, 400);
@@ -74,6 +78,12 @@ public class SurveyProcessorGUI extends JFrame {
         inputButton = new JButton(inputButtonStr);
         inputButton.addActionListener((ActionEvent e)-> {
             inputButtonAction();
+        });
+        
+        pickFileButton = new JButton();
+        pickFileButton.setText(pickFileButtonStr);
+        pickFileButton.addActionListener((ActionEvent e) -> {
+            pickFileButtonAction();
         });
 
         outputLabel = new JLabel();
@@ -135,6 +145,12 @@ public class SurveyProcessorGUI extends JFrame {
         c.weightx = 0;
         c.weighty = 0;
         c.fill = GridBagConstraints.NONE;
+        processTab.add(pickFileButton, c);
+        c.gridx = 3;
+        c.gridy = 0;
+        c.weightx = 0;
+        c.weighty = 0;
+        c.fill = GridBagConstraints.NONE;
         processTab.add(inputButton, c);
         
         c.gridx = 0;
@@ -157,8 +173,9 @@ public class SurveyProcessorGUI extends JFrame {
         
         c.gridx = 0;
         c.gridy = 2;
-        c.weightx = 1;
-        c.weighty = 1;
+        c.weightx = 5;
+        c.weighty = 5;
+        c.gridwidth = 4;
         c.fill = GridBagConstraints.BOTH;
         processTab.add(scrollPane, c);
         
@@ -166,6 +183,7 @@ public class SurveyProcessorGUI extends JFrame {
         c.gridy = 3;
         c.weightx = 1;
         c.weighty = 0;
+        c.gridwidth = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
         processTab.add(processButton, c);
         c.gridx = 0;
@@ -218,6 +236,16 @@ public class SurveyProcessorGUI extends JFrame {
             sp.createWritableWorkbook(outputField.getText());
         } catch (IOException ex) {
             Logger.getLogger(SurveyProcessorGUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void pickFileButtonAction() {
+        File file = null;
+        JFileChooser fc = new JFileChooser();
+        int showOpenDialog = fc.showOpenDialog(fc);
+        if (showOpenDialog == JFileChooser.OPEN_DIALOG) {
+            file = fc.getSelectedFile();
+            inputField.setText(file.getAbsolutePath());
         }
     }
 }

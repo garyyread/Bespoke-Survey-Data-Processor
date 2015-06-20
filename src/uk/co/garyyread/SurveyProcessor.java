@@ -85,6 +85,28 @@ public class SurveyProcessor {
 
         return result;
     }
+    
+        public boolean loadWorkbook(File file) {
+        boolean result = false;
+
+        try {
+            workBook = Workbook.getWorkbook(file);
+
+            if (debug) {
+                debug("readWorkBook(" + file.getAbsolutePath() + ")");
+            }
+            result = true;
+
+        } catch (IOException ex) {
+            displayMessage("File not recognised.");
+            Logger.getLogger(SurveyProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (BiffException ex) {
+            displayMessage("Workbook not read.");
+            Logger.getLogger(SurveyProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return result;
+    }
 
     /**
      * Create a workbook to write results too
