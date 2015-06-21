@@ -31,6 +31,7 @@ import jxl.write.WriteException;
  * application developed for a university student at Swansea University in aid
  * of their masters project.
  *
+ * @version 3.1
  * @author Gary
  * @since 2015
  */
@@ -197,7 +198,7 @@ public class SurveyProcessorGUI extends JFrame {
         add(processTab);
         setPreferredSize(WINDOW_SIZE);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setTitle("Survey Processor v3.0 - G.Read");
+        setTitle("Survey Processor v3.1 - G.Read");
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {

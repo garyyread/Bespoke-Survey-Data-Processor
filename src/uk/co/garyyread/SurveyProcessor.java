@@ -26,7 +26,7 @@ import jxl.write.WriteException;
 /**
  * Survey processor, bespoke application developed for a masters university 
  * student at Swansea university in aid to processes years worth of data.
- * @version 3.0
+ * @version 3.1
  * @author Gary Read
  * @since 2015
  */
@@ -43,6 +43,7 @@ public class SurveyProcessor {
     private int DATE; 
     private int JULIAN_DATE; 
     private int AGE_CLASS; 
+    private Sheet workingSheet;
 
     /**
      * Public class constructor...
@@ -128,11 +129,11 @@ public class SurveyProcessor {
      */
     public void processSheet(String name) throws WriteException, IOException {
         //Get sheet
-        Sheet workingSheet = workBook.getSheet(name);
+        this.workingSheet = workBook.getSheet(name);
 
         //Check sheet exists
         if (workingSheet == null) {
-            displayMessage("Sheet doesn't exist.");
+            displayMessage("Sheet " + name + " doesn't exist.");
             if (debug) {
                 debug("EXCEPTION:processSheet(" + name + "),sheet does not exist.");
             }
@@ -158,7 +159,7 @@ public class SurveyProcessor {
                 try {
                     debug(i + TAB + data[0][i].getContents() + TAB + data[1][i].getContents() + TAB + data[1][i].getCellFormat().getBackgroundColour().getValue() + TAB + data[2][i].getContents() + TAB + data[3][i].getContents() + TAB + data[4][i].getContents());
                 } catch (NullPointerException ex) {
-                    debug("EXCEPTION:processSheet(" + name + "),row:" + i + " is null");
+                    debug("EXCEPTION:processSheet(" + name + "),row:" + (i+1) + " is null");
                 } catch (ArrayIndexOutOfBoundsException ex) {
                     debug("EXCEPTION:processSheet(" + name + "),array is out of bounds at " + i);
                 }
@@ -178,16 +179,16 @@ public class SurveyProcessor {
                 String idColourStr = "" + data[ID_POS][i].getCellFormat().getBackgroundColour().getValue();
                 String beachStr = data[BEACH_POS][i].getContents();
                 int ageClass = sanatizeAgeClassInput(data[AGE_CLASS_POS][i].getContents());
-                LocalDate date = convertStrToDate(data[DATE_POS][i].getContents());
+                LocalDate date = convertStrToDate(data[DATE_POS][i].getContents(), i);
                 String julianDate = data[JULIAN_DATE_POS][i].getContents();
 
                 //Anything greater than 5 is bad!
                 if (ageClass > 5) {
-                    displayMessage("FATAL ERROR in Sheet \"" + workingSheet.getName() + "\""
+                    displayMessage("FATAL ERROR in Sheet \"" + workingSheet.getName() + "\" at row[" + (i+1) + "]"
                             + "\n" + "Please fix error in Class column!"
                             + "\n" + "Failed to convert text to date: \"" + ageClass + "\"");
                     debug("processSheet failed as ageClass was out of range - EXIT");
-                    System.exit(0);
+                    return;
 
                     //Compare date if key exists (find eariest date) then add to HashMap
                 } else if (map.containsKey(idStr)) {
@@ -244,18 +245,27 @@ public class SurveyProcessor {
                 }
             } catch (NullPointerException ex) {
                 if (debug) {
-                    debug("EXCEPTION:processSheet(" + name + "),missing data from row... row skipped...");
+                    debug("EXCEPTION:processSheet(" + name + "),missing data from row... row skipped... Null pointer exception");
+                }
+            } catch (DateTimeException ex) {
+                if (debug) {
+                    debug("EXCEPTION:processSheet(" + name + "),missing data from row... row skipped... Date Format exception");
+                }
+                return;
+            } catch (ArrayIndexOutOfBoundsException ex) {
+                if (debug) {
+                    debug("EXCEPTION:processSheet(" + name + "),missing data from row... row skipped... Array out of bounds exception");
                 }
             }
         }
 
         //debugging
         int i = 1;
-        for (i = 1; i <= map.size() && debug; i++) {
+        for (i = 1; i <= map.size() + 1 && debug; i++) {
             String[] arr = map.get(i + "");
-            debug(Arrays.toString(arr));
+            debug("id:" + i + " " + Arrays.toString(arr));
         }
-
+        
         writeResultsToWorkbook(name, map);
     }
 
@@ -269,7 +279,7 @@ public class SurveyProcessor {
         //Create work sheet
         createWritableWorkbook(name + "_result.xls");
         WritableSheet ws = resultBook.createSheet(name, 0);
-
+        
         //Write column headers
         ws.addCell(new Label(0, 0, "Beach"));
         ws.addCell(new Label(1, 0, "Pup ID"));
@@ -287,7 +297,7 @@ public class SurveyProcessor {
         ws.addCell(new Label(13, 0, "C5"));
 
         //Loop tnough rows of data
-        for (int r = 1; r <= map.size(); r++) {
+        for (int r = 1; r <= map.size() + 1; r++) {
             String[] arr = map.get(r + "");
 
             //Add each column of data from the row 'r'
@@ -311,7 +321,7 @@ public class SurveyProcessor {
                         ws.addCell(nc);
                     } catch (NumberFormatException ex) {
                         if (debug) {
-                            debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
+                            debug("EXCEPTION:method.1(),No age class found in data \"" + cont + "\"");
                         }
                     }
 
@@ -323,7 +333,7 @@ public class SurveyProcessor {
                         }
                     } catch (StringIndexOutOfBoundsException ex) {
                         if (debug) {
-                            debug("EXCEPTION:method(),No date found in data \"" + cont + "\"");
+                            debug("EXCEPTION:method.2(),No date found in data \"" + cont + "\"");
                         }
                     }
 
@@ -334,7 +344,7 @@ public class SurveyProcessor {
                         ws.addCell(nc);
                     } catch (NumberFormatException ex) {
                         if (debug) {
-                            debug("EXCEPTION:method(),No number found in data \"" + cont + "\"");
+                            debug("EXCEPTION:method.3(),No julian date found in data \"" + cont + "\"");
                         }
                     }
 
@@ -365,7 +375,7 @@ public class SurveyProcessor {
                 //return Integer.parseInt("" + ageClassStr.charAt(ageClassStr.length() - 1));
                 return Integer.parseInt(ageClassStr.substring(i,i+1));
             } catch (Exception e) {
-                //Skip
+                if (debug) debug("sanatizeAgeClassInput(" + ageClassStr + ") failed at least once.");
             }
         }
         
@@ -378,7 +388,7 @@ public class SurveyProcessor {
      * @param dateStr Date entered as a string.
      * @return LocalDate object representing the correct date from the survey.
      */
-    private LocalDate convertStrToDate(String dateStr) {
+    private LocalDate convertStrToDate(String dateStr, int row) {
         //convert date to working date type
         if (debug) {
             debug("convertStrToDate(" + dateStr + ")");
@@ -389,11 +399,11 @@ public class SurveyProcessor {
         try {
             date = LocalDate.parse(dateStr, dateFormat);
         } catch (DateTimeException ex) {
-            displayMessage("FATAL ERROR in Sheet"
+            displayMessage("FATAL ERROR in Sheet \"" + workingSheet.getName() + "\" at row[" + (row+1) + "]"
                     + "\n" + "Please fix error in date column!"
                     + "\n" + "Failed to convert text to date: \"" + dateStr + "\"");
             debug("convertStrToDate Failed - EXIT");
-            System.exit(0);
+            throw ex;
         }
 
         int year_error_range = 2025;
